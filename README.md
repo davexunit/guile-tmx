@@ -19,6 +19,11 @@ Usage
 not yet written.
 ```
 
+Dependencies
+------------
+
+[guile-zlib](https://github.com/davexunit/guile-zlib)
+
 Install
 -------
 
