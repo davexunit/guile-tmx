@@ -5,6 +5,7 @@
   #:use-module (sxml simple)
   #:use-module (sxml xpath)
   #:use-module (zlib)
+  #:use-module (tmx base64)
   #:export (load-tmx-map
             make-tmx-map
             tmx-map?
