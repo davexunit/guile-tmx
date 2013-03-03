@@ -1,9 +1,11 @@
 (define-module (tmx)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
   #:use-module (rnrs bytevectors)
   #:use-module (sxml simple)
   #:use-module (sxml xpath)
+  #:use-module (ice-9 format)
   #:use-module (zlib)
   #:use-module (tmx base64)
   #:export (load-tmx-map
