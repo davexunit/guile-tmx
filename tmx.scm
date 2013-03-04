@@ -46,7 +46,7 @@
 ;; Data structures
 (define-record-type <tmx-map>
   (make-tmx-map version orientation width height tile-width tile-height
-                tilesets layers)
+                tilesets layers properties)
   tmx-map?
   (version     tmx-map-version)
   (orientation tmx-map-orientation)
@@ -55,22 +55,24 @@
   (tile-width  tmx-map-tile-width)
   (tile-height tmx-map-tile-height)
   (tilesets    tmx-map-tilesets)
-  (layers      tmx-map-layers))
+  (layers      tmx-map-layers)
+  (properties  tmx-map-properties))
 
 (define-record-type <tmx-layer>
-  (make-tmx-layer name width height tiles)
+  (make-tmx-layer name width height tiles properties)
   tmx-layer?
-  (name   tmx-layer-name)
-  (width  tmx-layer-width)
-  (height tmx-layer-height)
-  (tiles  tmx-layer-tiles))
+  (name        tmx-layer-name)
+  (width       tmx-layer-width)
+  (height      tmx-layer-height)
+  (tiles       tmx-layer-tiles)
+  (properties  tmx-map-properties))
 
 (define-record-type <tmx-image>
   (make-tmx-image source width height)
   tmx-image?
-  (source tmx-image-source)
-  (width  tmx-image-width)
-  (height tmx-image-height))
+  (source      tmx-image-source)
+  (width       tmx-image-width)
+  (height      tmx-image-height))
 
 (define-record-type <tmx-tile>
   (make-tmx-tile id properties)
@@ -79,14 +81,16 @@
   (properties tmx-tile-properties))
 
 (define-record-type <tmx-tileset>
-  (make-tmx-tileset name first-gid tile-width tile-height image tiles)
+  (make-tmx-tileset name first-gid tile-width tile-height image
+                    tiles properties)
   tmx-tileset?
   (name        tmx-tileset-name)
   (first-gid   tmx-tileset-first-gid)
   (tile-width  tmx-tileset-tile-width)
   (tile-height tmx-tileset-tile-height)
   (image       tmx-tileset-image)
-  (tiles       tmx-tileset-tiles))
+  (tiles       tmx-tileset-tiles)
+  (properties  tmx-map-properties))
 
 ;; Custom printer so we don't print out giant tile vectors.
 (set-record-type-printer!
@@ -103,6 +107,15 @@
 
 (define (get-text node)
   (car ((sxpath '(*text*)) node)))
+
+(define (load-tmx-properties tree)
+  (let ((properties (make-hash-table)))
+    (for-each (lambda (p)
+                (let ((name  (get-attr 'name p))
+                      (value (get-attr 'value p)))
+                  (hash-set! properties (string->symbol name) value)))
+              ((sxpath '(property)) tree))
+    properties))
 
 (define (uncompress-layer data compression)
   (cond ((string=? compression "zlib")
@@ -127,7 +140,7 @@
          (height (string->number (get-attr 'height layer)))
          (name   (get-attr 'name layer))
          (tiles  (parse-tmx-layer-data (car ((sxpath '(data)) layer)))))
-    (make-tmx-layer name width height tiles)))
+    (make-tmx-layer name width height tiles (load-tmx-properties layer))))
 
 (define (load-tmx-layers tree)
   (let ((layers ((sxpath '(layer)) tree)))
@@ -140,14 +153,8 @@
     (make-tmx-image source width height)))
 
 (define (load-tmx-tile tile)
-  (let ((id         (get-attr 'id tile))
-        (properties (make-hash-table)))
-    (for-each (lambda (p)
-                (let ((name  (get-attr 'name p))
-                      (value (get-attr 'value p)))
-                  (hash-set! properties (string->symbol name) value)))
-              ((sxpath '(property)) tile))
-    (make-tmx-tile id properties)))
+  (let ((id (get-attr 'id tile)))
+    (make-tmx-tile id (load-tmx-properties tile))))
 
 (define (load-tmx-tiles tiles)
   (map (lambda (t) (load-tmx-tile t)) tiles))
@@ -160,7 +167,8 @@
          (image       (car ((sxpath '((image 1))) tileset)))
          (tiles       ((sxpath '(tile)) tileset)))
     (make-tmx-tileset name first-gid tile-width tile-height
-                      (load-tmx-image image) (load-tmx-tiles tiles))))
+                      (load-tmx-image image) (load-tmx-tiles tiles)
+                      (load-tmx-properties tileset))))
 
 (define (load-tmx-tilesets tree)
   (let ((tilesets ((sxpath '(tileset)) tree)))
@@ -180,4 +188,5 @@
              (tilesets    (load-tmx-tilesets map))
              (layers      (load-tmx-layers map)))
         (make-tmx-map version orientation width height
-                      tile-width tile-height tilesets layers)))))
+                      tile-width tile-height tilesets layers
+                      (load-tmx-properties map))))))
