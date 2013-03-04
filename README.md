@@ -16,7 +16,8 @@ Usage
 -----
 
 ```
-not yet written.
+scheme@(guile-user)> (use-modules (tmx))
+scheme@(guile-user)> (load-tmx-map "my-map.tmx")
 ```
 
 Dependencies
